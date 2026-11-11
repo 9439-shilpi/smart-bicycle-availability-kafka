@@ -1,0 +1,8 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Runtime files
+processed_ids.txt
+producer_state.json
+reliability_buffer.json

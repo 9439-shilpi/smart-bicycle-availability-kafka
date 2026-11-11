@@ -1,99 +1,118 @@
-# Smart Bicycle Availability Monitoring and Shortage Detection Using Apache Kafka
+# 🚲 Smart Bicycle Availability Monitoring Using Apache Kafka
 
 ## 1. Project Overview
 
-This project develops a real-time bicycle availability monitoring and shortage detection system using Apache Kafka, MQTT and Python.
+This project monitors bicycle availability at StadtRAD Hamburg stations using Python and Apache Kafka.
 
-It uses actual bicycle availability observations from StadtRAD Hamburg to monitor bicycle rental stations and identify low or zero bicycle availability.
+It collects real bicycle availability data, detects shortages, generates alerts, and displays the results on a Streamlit dashboard.
 
 ## 2. Business Objective
 
-The main objective is to detect bicycle shortages at rental stations.
-
-The system aims to:
-- Monitor bicycle availability using live observations.
-- Identify stations with low or zero bicycles.
+- Monitor bicycle availability.
+- Detect stations with low or zero bicycles.
 - Generate shortage alerts.
-- Display bicycle availability and alerts through a dashboard.
+- Display availability and alerts through a dashboard.
+- Process data reliably and efficiently.
 
-## 3. Real-Time Data Source
+## 3. Data Source
 
-**Data provider:** StadtRAD Hamburg
+- **Provider:** StadtRAD Hamburg
+- **Official dataset:** https://suche.transparenz.hamburg.de/dataset/stadtrad-stationen-hamburg39
+- **SensorThings API:** https://iot.hamburg.de/v1.0
+- **Collection method:** REST API
+- **Station:** S Reeperbahn / Königstraße
+- **Thing ID:** 4
+- **Datastream ID:** 25813
 
-**Official dataset:**  
-https://suche.transparenz.hamburg.de/dataset/stadtrad-stationen-hamburg39
+The Python producer checks the API every 5 seconds and collects new observations when available. Since the source publishes data at irregular intervals, monitoring is near-real-time.
 
-**SensorThings API:**  
-https://iot.hamburg.de/v1.0
-
-**MQTT broker:** `iot.hamburg.de`
-
-**Confirmed station:** S Reeperbahn / Königstraße
-
-**Datastream ID:** `25813`
-
-**MQTT topic:**  
-`v1.0/Datastreams(25813)/Observations`
-
-Repeated live MQTT observations have been successfully received from this station.
+MQTT was also tested as an alternative.
 
 ## 4. Technologies
 
-- Python
-- Apache Kafka
-- MQTT
-- Paho MQTT
-- kafka-python
-- Streamlit
+Python, Apache Kafka, REST API, JSON, kafka-python, Requests, Streamlit and GitHub.
 
-## 5. Proposed System Architecture
+## 5. System Architecture
 
-1. StadtRAD Hamburg provides live bicycle availability observations.
-2. A Python MQTT subscriber receives the observations.
-3. The Python producer publishes the data to Kafka topic `stadtrad-availability`.
-4. A Kafka consumer processes incoming observations.
-5. Shortage detection logic identifies low or zero bicycle availability.
-6. Shortage alerts are published to `bicycle-shortage-alerts`.
-7. A Streamlit dashboard displays availability and alerts.
+**Data flow:**
+
+StadtRAD REST API  
+↓  
+Python REST Producer  
+↓  
+Local Reliability Buffer  
+↓  
+Kafka: `stadtrad-availability`  
+↓  
+Python Consumer  
+↓  
+Idempotency Check and Shortage Detection  
+↓  
+Kafka: `bicycle-shortage-alerts`  
+↓  
+Streamlit Dashboard
 
 ## 6. Shortage Detection Rules
 
-Initial project-defined thresholds:
+| Available Bicycles | Status |
+|---|---|
+| More than 5 | NORMAL |
+| 1–5 | LOW |
+| 0 | EMPTY |
 
-- More than 5 bicycles: Normal availability.
-- 1 to 5 bicycles: Low availability.
-- 0 bicycles: Empty station.
+These are project-defined thresholds.
 
-These thresholds are defined for this project and are not official StadtRAD classifications.
+## 7. Main Features
 
-## 7. Kafka Topics
+- **Data collection:** Collects genuine StadtRAD observations.
+- **Kafka streaming:** Transfers observations through Kafka topics.
+- **Shortage detection:** Identifies low and empty stations.
+- **Idempotency:** Uses observation IDs to skip duplicates.
+- **Reliability:** Stores pending observations in a local JSON buffer when Kafka is unavailable and sends them after recovery.
+- **Dashboard:** Displays current availability, observation history and shortage alerts.
 
-- `stadtrad-availability`: Receives bicycle availability observations.
-- `bicycle-shortage-alerts`: Stores generated shortage alerts.
+## 8. Performance Evaluation
 
-## 8. Project Evaluation
+| Evaluation | Test Result |
+|---|---|
+| Latency | Recent processing samples: 0.005–0.025 seconds |
+| Producer throughput | 4,464.29 messages/sec |
+| Consumer throughput | 314.86 messages/sec |
+| Scalability | 10,000 messages across 3 partitions |
+| Scalability throughput | 68,493.15 messages/sec |
+| Scalability average latency | 2.70 ms |
+| Reliability | Buffer recovery successfully tested |
+| Idempotency | Duplicate observation successfully skipped |
+| Classification validation | 5 out of 5 test cases passed |
 
-The completed system will be evaluated using:
+*Throughput and scalability figures come from separate Kafka benchmarks using test messages. Classification validation is based on five predefined test cases, not real-world statistical accuracy. Scalability was tested with one Kafka broker.*
 
-- Throughput
-- Processing latency
-- Scalability
-- Reliability
-- Shortage detection accuracy
+## 9. Project Structure
 
-## 9. Project Status
+```text
+smart-bicycle-streaming/
+│
+├── producer/
+│   ├── rest_kafka_producer.py
+│   └── mqtt_kafka_producer.py
+│
+├── consumer/
+│   └── shortage_detector.py
+│
+├── dashboard/
+│   └── app.py
+│
+├── accuracy_test.py
+├── processed_ids.txt
+├── reliability_buffer.json
+├── producer_state.json
+└── README.md
+```
 
-**Status:** In progress.
+## 10. Project Status and Conclusion
 
-The official StadtRAD data source has been investigated, repeated live MQTT observations have been received from one station, and the local Kafka broker and required topics have been created.
+**Status: Main implementation and core testing completed.**
 
-The producer, consumer, shortage detection, dashboard and performance evaluation are yet to be implemented.
+The project demonstrates how Python and Apache Kafka can process genuine bicycle availability observations, detect shortages, handle duplicate messages, recover from Kafka downtime, and display results through a dashboard.
 
-## 10. Future Work
-
-- Implement the MQTT-to-Kafka producer.
-- Implement the Kafka consumer.
-- Develop shortage detection and alert generation.
-- Build the Streamlit dashboard.
-- Perform system testing and performance evaluation.
-- Prepare the final project report.
+Throughput, latency, reliability, idempotency, classification rules and partition-level scalability have been evaluated.
