@@ -181,4 +181,4 @@ Open `http://localhost:8501` in your browser.
 
 M.Sc. Applied Data Science & Artificial Intelligence
 
-SRH University of Applied Sciences, Hamburg
+SRH University of Applied Sciences, Hamburg.
