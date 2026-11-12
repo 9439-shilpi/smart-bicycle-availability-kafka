@@ -175,7 +175,7 @@ streamlit run dashboard/app.py
 
 Open `http://localhost:8501` in your browser.
 
-## Author
+### Author
 
 **Sunandana Sahoo**
 
